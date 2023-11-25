@@ -26,6 +26,8 @@ jobs:
         run: |
           conda install -y -n base conda-libmamba-solver
           conda config --set solver libmamba
+          conda create -y -n testenv python=${{ matrix.python-version }}
+          conda activate testenv
           conda install -y -c bioconda pysam
 
       - name: Run pytest
