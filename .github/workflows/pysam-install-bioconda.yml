@@ -22,8 +22,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m micromamba install pysam
+          micromamba install -y -c bioconda pysam
 
       - name: Run pytest
         run: |
-          true
+          python -c "import pysam; print(pysam.__version__)"
