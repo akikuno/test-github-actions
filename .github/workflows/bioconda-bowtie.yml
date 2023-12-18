@@ -23,7 +23,7 @@ jobs:
         with:
           auto-update-conda: true
           python-version: 3.*
-          activate-environment: myenv
+          activate-environment: test-env
           channels: bioconda, conda-forge, defaults, anaconda
 
       - name: Install Bioconda Package
