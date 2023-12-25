@@ -1,0 +1,32 @@
+name: Install DAJIN2 Package
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 2
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    name: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: 3.*
+          activate-environment: test-env
+          channels: bioconda, conda-forge, defaults, anaconda
+
+      - name: Install Bioconda Package
+        run: |
+          conda install -c bioconda DAJIN2 -y
+          DAJIN2 --version || exit 1
