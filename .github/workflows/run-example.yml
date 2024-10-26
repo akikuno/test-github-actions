@@ -2,8 +2,6 @@ name: Run example by current DAJIN2 package
 
 on:
     push:
-    schedule:
-        - cron: "0 2 * * 1" # The task runs at 2 a.m. every Monday.
 
 jobs:
     build:
@@ -32,7 +30,7 @@ jobs:
               run: |
                   conda create -y -n env-dajin2 python=${{ matrix.python-version }} pip pytest
 
-            - name: Install weasyprint on macos-latest🍎
+            - name: Install WeasyPrint on macOS
               if: runner.os == 'macOS'
               run: |
                   conda install -n env-dajin2 weasyprint
@@ -43,17 +41,16 @@ jobs:
               run: |
                   conda activate env-dajin2
 
-                  # Use pip because conda does not support pyproject.toml.
-                  pip install DAJIN2==0.5.4
+                  # Install DAJIN2 using pip as conda does not support pyproject.toml.
+                  pip install DAJIN2==0.5.5
 
-                  # Donwload the example dataset
-
+                  # Download the example dataset if not already present
                   if ! [ -d example_single ]; then
                       curl -LJO https://github.com/akikuno/DAJIN2/raw/main/examples/example_single.tar.gz
                       tar -xf example_single.tar.gz
                   fi
 
-                  # Run DAJIN2
+                  # Run DAJIN2 with specified parameters
                   time DAJIN2 \
                       --control example_single/control \
                       --sample example_single/sample \
