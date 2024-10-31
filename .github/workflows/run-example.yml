@@ -30,11 +30,6 @@ jobs:
               run: |
                   conda create -y -n env-dajin2 python=${{ matrix.python-version }} pip pytest
 
-            - name: Install WeasyPrint on macOS
-              if: runner.os == 'macOS'
-              run: |
-                  conda install -n env-dajin2 weasyprint
-
             - name: Execute tests
               env:
                   PYTHONPATH: src
