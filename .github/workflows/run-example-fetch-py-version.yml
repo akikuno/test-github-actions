@@ -1,0 +1,89 @@
+name: Run example by current DAJIN2 package
+
+on:
+    push:
+    workflow_dispatch:
+
+jobs:
+    # Step 1: Fetch supported Python versions dynamically
+    fetch-python-versions:
+        runs-on: ubuntu-latest
+        outputs:
+            python_versions: ${{ steps.set-matrix.outputs.python_versions }}
+        steps:
+            - name: Set up Python environment
+              uses: actions/setup-python@v5
+              with:
+                  python-version: 3.x
+
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install requests beautifulsoup4
+
+            - name: Fetch latest supported Python versions
+              id: set-matrix
+              run: |
+                  python - <<EOF
+                  import requests
+                  from bs4 import BeautifulSoup
+                  import json
+
+                  url = "https://devguide.python.org/versions/"
+                  response = requests.get(url)
+                  soup = BeautifulSoup(response.content, "html.parser")
+
+                  supported_versions = []
+                  for row in soup.find_all("tr"):
+                      columns = row.find_all("td")
+                      if not columns:
+                          continue
+                      if "security" in columns[2].text.lower() or "bugfix" in columns[2].text.lower():
+                          version = columns[0].text.strip()
+                          supported_versions.append(version)
+
+                  python_versions_json = json.dumps(supported_versions)
+                  print(f"::set-output name=python_versions::{python_versions_json}")
+                  EOF
+
+    # Step 2: Use dynamic Python version matrix to run tests
+    build:
+        needs: fetch-python-versions
+        runs-on: ${{ matrix.os }}
+        strategy:
+            max-parallel: 2
+            matrix:
+                os: [ubuntu-latest, macos-latest]
+                python-version: ${{ fromJson(needs.fetch-python-versions.outputs.python_versions) }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v3
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install pytest
+                  pip install DAJIN2==0.5.5
+
+            - name: Download example dataset
+              run: |
+                  if ! [ -d example_single ]; then
+                      curl -LJO https://github.com/akikuno/DAJIN2/raw/main/examples/example_single.tar.gz
+                      tar -xf example_single.tar.gz
+                  fi
+
+            - name: Run DAJIN2
+              env:
+                  PYTHONPATH: src
+              run: |
+                  time DAJIN2 \
+                      --control example_single/control \
+                      --sample example_single/sample \
+                      --allele example_single/stx2_deletion.fa \
+                      --name stx2_deletion \
+                      --genome mm39 \
+                      --threads 4 \
+                      --debug || exit 1
