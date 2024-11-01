@@ -42,8 +42,9 @@ jobs:
                           version = columns[0].text.strip()
                           supported_versions.append(version)
 
-                  python_versions_json = json.dumps(supported_versions)
-                  print(f"::set-output name=python_versions::{python_versions_json}")
+                  python_versions_json = json.dumps(supported_versions[:5])  # Use the 5 latest supported versions
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      print(f"python_versions={python_versions_json}", file=f)
                   EOF
 
     # Step 2: Use dynamic Python version matrix to run tests
@@ -51,14 +52,13 @@ jobs:
         needs: fetch-python-versions
         runs-on: ${{ matrix.os }}
         strategy:
-            max-parallel: 2
             matrix:
                 os: [ubuntu-latest, macos-latest]
                 python-version: ${{ fromJson(needs.fetch-python-versions.outputs.python_versions) }}
         steps:
             - uses: actions/checkout@v4
             - name: Set up Python ${{ matrix.python-version }}
-              uses: actions/setup-python@v3
+              uses: actions/setup-python@v5
               with:
                   python-version: ${{ matrix.python-version }}
 
