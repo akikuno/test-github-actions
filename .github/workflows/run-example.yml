@@ -1,4 +1,4 @@
-name: Run example by current DAJIN2 package
+name: E2E test for Stx2 deletion
 
 on:
     push:
@@ -10,42 +10,41 @@ jobs:
             max-parallel: 2
             matrix:
                 os: [ubuntu-latest, macos-latest]
-                python-version: [3.x]
+                python-version: ["3.13"]
         name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
-
-        defaults:
-            run:
-                shell: bash -l {0}
 
         steps:
             - uses: actions/checkout@v4
-            - uses: conda-incubator/setup-miniconda@v3
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
               with:
                   python-version: ${{ matrix.python-version }}
-                  miniconda-version: "latest"
-                  activate-environment: test-env
-                  channels: bioconda, conda-forge, defaults
 
-            - name: Setup conda environment
+            - name: Create and activate virtual environment
               run: |
-                  conda create -y -n env-dajin2 python=${{ matrix.python-version }} pip pytest
+                  python -m venv env
+                  source env/bin/activate
+                  pip install --upgrade pip
+                  pip install pytest
 
-            - name: Execute tests
+            - name: Install DAJIN2 and dependencies
+              run: |
+                  source env/bin/activate
+                  pip install -e .  # Install DAJIN2 in editable mode
+
+            - name: Download example dataset
+              run: |
+                  if [ ! -d example_single ]; then
+                    curl -LJO https://github.com/akikuno/DAJIN2/raw/main/examples/example_single.tar.gz
+                    tar -xf example_single.tar.gz
+                  fi
+
+            - name: Run DAJIN2 with parameters
               env:
                   PYTHONPATH: src
               run: |
-                  conda activate env-dajin2
-
-                  # Install DAJIN2 using pip as conda does not support pyproject.toml.
-                  pip install DAJIN2==0.5.5
-
-                  # Download the example dataset if not already present
-                  if ! [ -d example_single ]; then
-                      curl -LJO https://github.com/akikuno/DAJIN2/raw/main/examples/example_single.tar.gz
-                      tar -xf example_single.tar.gz
-                  fi
-
-                  # Run DAJIN2 with specified parameters
+                  source env/bin/activate
                   time DAJIN2 \
                       --control example_single/control \
                       --sample example_single/sample \
